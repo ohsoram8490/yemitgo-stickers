@@ -1,21 +1,32 @@
 <!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>복음본색 스티커</title><link rel="stylesheet" href="/style.css"></head><body>
-<header><div><h1>복음본색 스티커</h1><small>예수 믿는 고대를 꿈꾸며 · 복음본색 두 번째 굿즈</small></div><a href="/admin.html">관리자</a></header>
-<main><input type="search" id="q" placeholder="스티커 검색">
-<div class="grid" id="grid"></div><div class="empty" id="empty" hidden>등록된 스티커가 없어요</div></main>
-<footer>스티커를 누르면 복사돼요. 카톡·인스타·메모 어디든 붙여넣기(Ctrl/⌘+V)</footer><div id="toast"></div>
+<title>복음본색 스티커</title><meta property="og:title" content="복음본색 스티커"><meta property="og:description" content="예수 믿는 고대를 꿈꾸며 · 복음본색 pt.2">
+<link rel="stylesheet" href="/style.css">
+<style>
+.hero{min-height:100vh;background:radial-gradient(circle at 50% 40%,#B3003A,var(--crimson) 55%,var(--crimson-d));color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px;position:relative;overflow:hidden}
+.mascot{width:min(70vw,52vh,460px);height:auto;animation:pulse 2.4s ease-in-out infinite;filter:drop-shadow(0 16px 30px rgba(0,0,0,.35))}.hero h1{margin:26px 0 0;font-size:clamp(30px,7vw,64px);font-weight:900;letter-spacing:-.03em;line-height:1.1;text-shadow:0 6px 24px rgba(0,0,0,.3)}
+.hero p{margin:14px 0 0;font-size:clamp(15px,3.6vw,24px);opacity:0;animation:fade 1s .6s forwards;letter-spacing:.02em}
+.hint{position:absolute;bottom:28px;font-size:14px;opacity:.85;animation:bob 1.6s ease-in-out infinite}
+@keyframes pulse{0%,100%{transform:scale(.8)}50%{transform:scale(1.1)}}
+@keyframes fade{to{opacity:.92}}@keyframes bob{50%{transform:translateY(8px)}}
+.sec{max-width:1000px;margin:0 auto;padding:48px 20px 20px}.sec h2{margin:0;text-align:center;color:var(--crimson);font-size:22px}
+.sec .sub{text-align:center;color:#8a6670;font-size:14px;margin:6px 0 0}
+footer a{color:#bbb}
+@media(prefers-reduced-motion:reduce){.mascot,.hint{animation:none}}
+</style></head><body>
+<section class="hero"><img class="mascot" src="/hero.png" alt="복음본색 스티커"><h1>복음본색 스티커</h1><p>예수 믿는 고대를 꿈꾸며 · 복음본색 pt.2</p><div class="hint">↓ 스크롤해서 스티커 받기</div></section>
+<section class="sec" id="stickers"><h2>스티커를 눌러 복사하세요</h2><p class="sub">카톡·인스타·메모에 붙여넣기 (Ctrl/⌘ + V)</p>
+<div class="grid" id="grid"></div><div class="empty" id="empty" hidden>스티커를 준비 중이에요</div></section>
+<footer>복음본색 pt.2 · <a href="/admin.html">관리자</a></footer><div id="toast"></div>
 <script>
-let all=[];const grid=document.getElementById('grid');
+const grid=document.getElementById('grid');
 function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('on');setTimeout(()=>t.classList.remove('on'),1600)}
-async function toPng(url){const b=await (await fetch(url)).blob();if(b.type==='image/png')return b;
+async function toPng(url){const r=await fetch('/api/img?url='+encodeURIComponent(url));if(!r.ok)throw new Error('이미지 불러오기 실패');const b=await r.blob();
  const img=await createImageBitmap(b);const c=document.createElement('canvas');c.width=img.width;c.height=img.height;c.getContext('2d').drawImage(img,0,0);
- return new Promise(r=>c.toBlob(r,'image/png'))}
-async function copy(url){try{await navigator.clipboard.write([new ClipboardItem({'image/png':toPng(url)})]);toast('복사됐어요! 붙여넣기 해보세요')}
- catch(e){toast('복사 실패 — 길게 눌러 저장해주세요')}}
-function render(){const k=document.getElementById('q').value.trim().toLowerCase();grid.innerHTML='';
- const list=all.filter(s=>s.name.toLowerCase().includes(k));document.getElementById('empty').hidden=list.length>0;
- list.forEach(s=>{const d=document.createElement('div');d.className='tile';d.innerHTML='<img loading="lazy" alt="">';
- d.firstChild.src=s.url;d.firstChild.alt=s.name;d.onclick=()=>copy(s.url);grid.appendChild(d)})}
-document.getElementById('q').oninput=render;
-fetch('/api/stickers').then(r=>r.json()).then(d=>{all=Array.isArray(d)?d:[];render()});
+ return new Promise((res,rej)=>c.toBlob(x=>x?res(x):rej(new Error('변환 실패')),'image/png'))}
+async function copy(url){
+ if(!window.ClipboardItem||!navigator.clipboard||!navigator.clipboard.write){toast('이 브라우저는 복사를 지원하지 않아요. 크롬/사파리로 열어주세요');return}
+ try{await navigator.clipboard.write([new ClipboardItem({'image/png':toPng(url)})]);toast('복사됐어요! 붙여넣기 해보세요')}
+ catch(e){toast('복사 실패: '+(e.message||e.name))}}
+fetch('/api/stickers').then(r=>r.json()).then(d=>{d=Array.isArray(d)?d:[];document.getElementById('empty').hidden=d.length>0;
+ d.forEach(s=>{const t=document.createElement('div');t.className='tile';const i=new Image();i.loading='lazy';i.alt='';i.src=s.url;t.appendChild(i);t.onclick=()=>copy(s.url);grid.appendChild(t)})});
 </script></body></html>
