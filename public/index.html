@@ -1,0 +1,21 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>복음본색 스티커</title><link rel="stylesheet" href="/style.css"></head><body>
+<header><div><h1>복음본색 스티커</h1><small>예수 믿는 고대를 꿈꾸며 · 복음본색 두 번째 굿즈</small></div><a href="/admin.html">관리자</a></header>
+<main><input type="search" id="q" placeholder="스티커 검색">
+<div class="grid" id="grid"></div><div class="empty" id="empty" hidden>등록된 스티커가 없어요</div></main>
+<footer>스티커를 누르면 복사돼요. 카톡·인스타·메모 어디든 붙여넣기(Ctrl/⌘+V)</footer><div id="toast"></div>
+<script>
+let all=[];const grid=document.getElementById('grid');
+function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('on');setTimeout(()=>t.classList.remove('on'),1600)}
+async function toPng(url){const b=await (await fetch(url)).blob();if(b.type==='image/png')return b;
+ const img=await createImageBitmap(b);const c=document.createElement('canvas');c.width=img.width;c.height=img.height;c.getContext('2d').drawImage(img,0,0);
+ return new Promise(r=>c.toBlob(r,'image/png'))}
+async function copy(url){try{await navigator.clipboard.write([new ClipboardItem({'image/png':toPng(url)})]);toast('복사됐어요! 붙여넣기 해보세요')}
+ catch(e){toast('복사 실패 — 길게 눌러 저장해주세요')}}
+function render(){const k=document.getElementById('q').value.trim().toLowerCase();grid.innerHTML='';
+ const list=all.filter(s=>s.name.toLowerCase().includes(k));document.getElementById('empty').hidden=list.length>0;
+ list.forEach(s=>{const d=document.createElement('div');d.className='tile';d.innerHTML='<img loading="lazy" alt="">';
+ d.firstChild.src=s.url;d.firstChild.alt=s.name;d.onclick=()=>copy(s.url);grid.appendChild(d)})}
+document.getElementById('q').oninput=render;
+fetch('/api/stickers').then(r=>r.json()).then(d=>{all=Array.isArray(d)?d:[];render()});
+</script></body></html>

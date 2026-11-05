@@ -1,0 +1,24 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>스티커 관리자</title><link rel="stylesheet" href="/style.css"></head><body>
+<header><div><h1>스티커 관리자</h1><small>복음본색 스티커</small></div><a href="/">← 사이트로</a></header>
+<main><div style="display:flex;gap:8px"><input type="password" id="pw" placeholder="관리자 비밀번호"><button class="btn" id="login">확인</button></div>
+<div id="panel" hidden><div class="drop" id="drop">여기로 이미지를 끌어놓거나 클릭해서 선택 (PNG·GIF·WebP, 여러 장 가능)
+<input type="file" id="file" accept="image/*" multiple hidden></div>
+<div class="grid" id="grid"></div></div></main><div id="toast"></div>
+<script>
+const $=id=>document.getElementById(id);let pw=sessionStorage.getItem('pw')||'';
+function toast(m){const t=$('toast');t.textContent=m;t.classList.add('on');setTimeout(()=>t.classList.remove('on'),1800)}
+async function load(){const d=await (await fetch('/api/stickers')).json();$('grid').innerHTML='';
+ d.forEach(s=>{const t=document.createElement('div');t.className='tile';t.innerHTML='<img><button class="x">×</button>';t.querySelector('img').src=s.url;
+ t.querySelector('button').onclick=async()=>{if(!confirm('삭제할까요?'))return;
+ const r=await fetch('/api/upload?url='+encodeURIComponent(s.url),{method:'DELETE',headers:{'x-admin-password':pw}});
+ r.ok?(toast('삭제됨'),load()):toast('삭제 실패');};$('grid').appendChild(t)})}
+async function enter(){const r=await fetch('/api/upload',{method:'GET',headers:{'x-admin-password':pw}});
+ if(r.status===401){toast('비밀번호가 틀려요');return}sessionStorage.setItem('pw',pw);$('panel').hidden=false;load()}
+$('login').onclick=()=>{pw=$('pw').value;enter()};if(pw)enter();
+async function up(files){for(const f of files){const name=f.name.replace(/\.[^.]+$/,'');
+ const r=await fetch('/api/upload',{method:'POST',headers:{'x-admin-password':pw,'x-filename':encodeURIComponent(f.name),'x-content-type':f.type,'content-type':'application/octet-stream'},body:f});
+ toast(r.ok?name+' 등록 완료':name+' 실패')}load()}
+$('drop').onclick=()=>$('file').click();$('file').onchange=e=>up(e.target.files);
+$('drop').ondragover=e=>e.preventDefault();$('drop').ondrop=e=>{e.preventDefault();up(e.dataTransfer.files)};
+</script></body></html>
