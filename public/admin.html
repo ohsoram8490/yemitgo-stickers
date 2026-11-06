@@ -1,5 +1,5 @@
 <!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>스티커 관리자</title><link rel="stylesheet" href="/style.css"></head><body>
+<title>스티커 관리자</title><link rel="stylesheet" href="/style.css"><style>.tile{user-select:none}.tile .no{position:absolute;left:8px;top:6px;font-size:12px;font-weight:700;color:var(--crimson)}.tile .hit{position:absolute;left:0;right:0;bottom:4px;text-align:center;font-size:11px;color:#8a6670}.tile .mv{position:absolute;left:0;right:0;bottom:20px;display:flex;justify-content:space-between;padding:0 6px}.tile .mv button{background:rgba(139,0,41,.85);color:#fff;border:0;border-radius:6px;width:26px;height:22px;cursor:pointer}</style></head><body>
 <header><div><h1>스티커 관리자</h1><small>복음본색 스티커</small></div><a href="/">← 사이트로</a></header>
 <main><div style="display:flex;gap:8px"><input type="password" id="pw" placeholder="관리자 비밀번호"><button class="btn" id="login">확인</button></div>
 <div id="panel" hidden><div class="drop" id="drop">여기로 이미지를 끌어놓거나 클릭해서 선택 (PNG·GIF·WebP, 여러 장 가능)
@@ -7,17 +7,30 @@
 <div style="margin-top:12px;font-size:14px;display:flex;gap:18px;flex-wrap:wrap;color:var(--crimson)">
 <label><input type="checkbox" id="trim" checked> 여백 자동 다듬기</label>
 <label><input type="checkbox" id="rmbg"> 단색 배경 지우기 (흰 배경 사진용)</label></div>
+<div style="margin-top:14px;display:flex;gap:10px;align-items:center"><button class="btn" id="save" disabled>순서 저장</button><span style="font-size:13px;color:#8a6670">스티커를 끌어서 옮기거나 ← → 버튼을 쓰세요. 이 순서가 '추천순'이에요.</span></div>
 <div class="grid" id="grid"></div></div></main><div id="toast"></div>
 <script>
 const $=id=>document.getElementById(id);let pw=sessionStorage.getItem('pw')||'';
 function toast(m){const t=$('toast');t.textContent=m;t.classList.add('on');setTimeout(()=>t.classList.remove('on'),1800)}
-async function load(){const d=await (await fetch('/api/stickers')).json();$('grid').innerHTML='';
- d.forEach(s=>{const t=document.createElement('div');t.className='tile';t.innerHTML='<img><button class="x">×</button>';t.querySelector('img').src=s.url;
- t.querySelector('button').onclick=async()=>{if(!confirm('삭제할까요?'))return;
- const r=await fetch('/api/upload?url='+encodeURIComponent(s.url),{method:'DELETE',headers:{'x-admin-password':pw}});
- r.ok?(toast('삭제됨'),load()):toast('삭제 실패');};$('grid').appendChild(t)})}
+let items=[],drag=null,changed=false;
+function mark(){changed=true;$('save').disabled=false}
+function render(){$('grid').innerHTML='';
+ items.forEach((s,i)=>{const t=document.createElement('div');t.className='tile';t.draggable=true;
+ t.innerHTML='<img draggable="false"><button class="x">×</button><span class="no">'+(i+1)+'</span><span class="hit">복사 '+s.hits+'회</span><div class="mv"><button>←</button><button>→</button></div>';
+ t.querySelector('img').src=s.url;
+ const mv=(j)=>{if(j<0||j>=items.length)return;const [m]=items.splice(i,1);items.splice(j,0,m);mark();render()};
+ const [l,r]=t.querySelectorAll('.mv button');l.onclick=()=>mv(i-1);r.onclick=()=>mv(i+1);
+ t.ondragstart=()=>{drag=i};t.ondragover=e=>e.preventDefault();
+ t.ondrop=e=>{e.preventDefault();if(drag!==null&&drag!==i){const [m]=items.splice(drag,1);items.splice(i,0,m);mark();render()}drag=null};
+ t.querySelector('.x').onclick=async()=>{if(!confirm('삭제할까요?'))return;
+ const x=await fetch('/api/upload?url='+encodeURIComponent(s.url),{method:'DELETE',headers:{'x-admin-password':pw}});
+ x.ok?(toast('삭제됨'),load()):toast('삭제 실패')};$('grid').appendChild(t)})}
+async function load(){const d=await (await fetch('/api/stickers?t='+Date.now())).json();items=Array.isArray(d)?d:[];changed=false;$('save').disabled=true;render()}
+async function saveOrder(){const r=await fetch('/api/order',{method:'POST',headers:{'content-type':'application/json','x-admin-password':pw},body:JSON.stringify({order:items.map(s=>s.id)})});
+ const j=await r.json().catch(()=>({}));toast(r.ok?'순서 저장됨':(j.error||'저장 실패'));if(r.ok){changed=false;$('save').disabled=true}}
 async function enter(){const r=await fetch('/api/upload',{method:'GET',headers:{'x-admin-password':pw}});
  if(r.status===401){toast('비밀번호가 틀려요');return}sessionStorage.setItem('pw',pw);$('panel').hidden=false;load()}
+$('save').onclick=saveOrder;
 $('login').onclick=()=>{pw=$('pw').value;enter()};if(pw)enter();
 async function clean(file){
  if(!$('trim').checked||file.type==='image/gif'||file.type==='image/svg+xml')return file;

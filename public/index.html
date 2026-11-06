@@ -16,11 +16,12 @@
 @keyframes fade{to{opacity:.92}}@keyframes bob{50%{transform:translateY(8px)}}
 .sec{max-width:1000px;margin:0 auto;padding:48px 20px 20px}.sec h2{margin:0;text-align:center;color:var(--crimson);font-size:22px}
 .sec .sub{text-align:center;color:#8a6670;font-size:14px;margin:6px 0 0}
-footer a{color:#bbb}
+footer a{color:#bbb}.sort{display:flex;justify-content:center;gap:8px;margin-top:18px}.sort button{border:2px solid var(--crimson);background:#fff;color:var(--crimson);border-radius:999px;padding:7px 16px;font-size:14px;cursor:pointer}.sort button.on{background:var(--crimson);color:#fff}
 @media(prefers-reduced-motion:reduce){.mascot,.hint{animation:none}}
 </style></head><body>
 <section class="hero"><img class="mascot" src="/hero.png" alt="복음본색 스티커"><h1>복음본색 스티커</h1><p>예수 믿는 고대를 꿈꾸며 · 복음본색 pt.2</p><div class="hint">↓ 스크롤해서 스티커 받기</div></section>
 <section class="sec" id="stickers"><h2>스티커를 눌러 복사하세요</h2><p class="sub">카톡·인스타·메모에 붙여넣기 (Ctrl/⌘ + V)</p>
+<div class="sort" id="sort"><button data-k="rec" class="on">추천순</button><button data-k="hit">인기순</button><button data-k="new">최신순</button></div>
 <div class="grid" id="grid"></div><div class="empty" id="empty" hidden>스티커를 준비 중이에요</div></section>
 <footer>복음본색 pt.2 · <a href="/admin.html">관리자</a></footer><div id="toast"></div>
 <script>
@@ -29,10 +30,15 @@ function toast(m){const t=document.getElementById('toast');t.textContent=m;t.cla
 async function toPng(url){const r=await fetch('/api/img?url='+encodeURIComponent(url));if(!r.ok)throw new Error('이미지 불러오기 실패');const b=await r.blob();
  const img=await createImageBitmap(b);const c=document.createElement('canvas');c.width=img.width;c.height=img.height;c.getContext('2d').drawImage(img,0,0);
  return new Promise((res,rej)=>c.toBlob(x=>x?res(x):rej(new Error('변환 실패')),'image/png'))}
-async function copy(url){
+async function copy(s){const url=s.url;
  if(!window.ClipboardItem||!navigator.clipboard||!navigator.clipboard.write){toast('이 브라우저는 복사를 지원하지 않아요. 크롬/사파리로 열어주세요');return}
- try{await navigator.clipboard.write([new ClipboardItem({'image/png':toPng(url)})]);toast('복사됐어요! 붙여넣기 해보세요')}
+ try{await navigator.clipboard.write([new ClipboardItem({'image/png':toPng(url)})]);toast('복사됐어요! 붙여넣기 해보세요');fetch('/api/hit',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({id:s.id}),keepalive:true}).catch(()=>{})}
  catch(e){toast('복사 실패: '+(e.message||e.name))}}
-fetch('/api/stickers').then(r=>r.json()).then(d=>{d=Array.isArray(d)?d:[];document.getElementById('empty').hidden=d.length>0;
- d.forEach(s=>{const t=document.createElement('div');t.className='tile';const i=new Image();i.loading='lazy';i.alt='';i.src=s.url;t.appendChild(i);t.onclick=()=>copy(s.url);grid.appendChild(t)})});
+let all=[],key='rec';
+function render(){grid.innerHTML='';const l=all.slice();
+ if(key==='hit')l.sort((a,b)=>b.hits-a.hits);else if(key==='new')l.sort((a,b)=>b.t-a.t);
+ document.getElementById('empty').hidden=l.length>0;
+ l.forEach(s=>{const t=document.createElement('div');t.className='tile';const i=new Image();i.loading='lazy';i.alt='';i.src=s.url;t.appendChild(i);t.onclick=()=>copy(s);grid.appendChild(t)})}
+document.querySelectorAll('#sort button').forEach(b=>b.onclick=()=>{key=b.dataset.k;document.querySelectorAll('#sort button').forEach(x=>x.classList.toggle('on',x===b));render()});
+fetch('/api/stickers').then(r=>r.json()).then(d=>{all=Array.isArray(d)?d:[];render()});
 </script></body></html>
