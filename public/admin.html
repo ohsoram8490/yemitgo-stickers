@@ -4,6 +4,9 @@
 <main><div style="display:flex;gap:8px"><input type="password" id="pw" placeholder="관리자 비밀번호"><button class="btn" id="login">확인</button></div>
 <div id="panel" hidden><div class="drop" id="drop">여기로 이미지를 끌어놓거나 클릭해서 선택 (PNG·GIF·WebP, 여러 장 가능)
 <input type="file" id="file" accept="image/*" multiple hidden></div>
+<div style="margin-top:12px;font-size:14px;display:flex;gap:18px;flex-wrap:wrap;color:var(--crimson)">
+<label><input type="checkbox" id="trim" checked> 여백 자동 다듬기</label>
+<label><input type="checkbox" id="rmbg"> 단색 배경 지우기 (흰 배경 사진용)</label></div>
 <div class="grid" id="grid"></div></div></main><div id="toast"></div>
 <script>
 const $=id=>document.getElementById(id);let pw=sessionStorage.getItem('pw')||'';
@@ -16,8 +19,36 @@ async function load(){const d=await (await fetch('/api/stickers')).json();$('gri
 async function enter(){const r=await fetch('/api/upload',{method:'GET',headers:{'x-admin-password':pw}});
  if(r.status===401){toast('비밀번호가 틀려요');return}sessionStorage.setItem('pw',pw);$('panel').hidden=false;load()}
 $('login').onclick=()=>{pw=$('pw').value;enter()};if(pw)enter();
+async function clean(file){
+ if(!$('trim').checked||file.type==='image/gif'||file.type==='image/svg+xml')return file;
+ try{
+ const bmp=await createImageBitmap(file);
+ const sc=Math.min(1,1000/Math.max(bmp.width,bmp.height));
+ const w=Math.round(bmp.width*sc),h=Math.round(bmp.height*sc);
+ const c=document.createElement('canvas');c.width=w;c.height=h;
+ const x=c.getContext('2d',{willReadFrequently:true});x.drawImage(bmp,0,0,w,h);
+ const img=x.getImageData(0,0,w,h),d=img.data;
+ if($('rmbg').checked){
+  const r=d[0],g=d[1],b=d[2],seen=new Uint8Array(w*h),st=[];
+  const ok=i=>Math.abs(d[i*4]-r)+Math.abs(d[i*4+1]-g)+Math.abs(d[i*4+2]-b)<=45;
+  const push=i=>{if(!seen[i]&&ok(i)){seen[i]=1;st.push(i)}};
+  for(let i=0;i<w;i++){push(i);push((h-1)*w+i)}for(let j=0;j<h;j++){push(j*w);push(j*w+w-1)}
+  while(st.length){const i=st.pop(),px=i%w,py=(i/w)|0;d[i*4+3]=0;
+   if(px>0)push(i-1);if(px<w-1)push(i+1);if(py>0)push(i-w);if(py<h-1)push(i+w)}
+ }
+ let x0=w,y0=h,x1=-1,y1=-1;
+ for(let j=0;j<h;j++)for(let i=0;i<w;i++)if(d[(j*w+i)*4+3]>10){if(i<x0)x0=i;if(i>x1)x1=i;if(j<y0)y0=j;if(j>y1)y1=j}
+ if(x1<0)return file;
+ const bw=x1-x0+1,bh=y1-y0+1,pad=Math.round(Math.max(bw,bh)*0.03);
+ x.putImageData(img,0,0);
+ const o=document.createElement('canvas');o.width=bw+pad*2;o.height=bh+pad*2;
+ o.getContext('2d').drawImage(c,x0,y0,bw,bh,pad,pad,bw,bh);
+ return await new Promise(r=>o.toBlob(r,'image/png'))||file;
+ }catch(e){return file}
+}
 async function up(files){for(const f of files){const name=f.name.replace(/\.[^.]+$/,'');
- const r=await fetch('/api/upload',{method:'POST',headers:{'x-admin-password':pw,'x-filename':encodeURIComponent(f.name),'x-content-type':f.type,'content-type':'application/octet-stream'},body:f});
+ const out=await clean(f);const isPng=out!==f;
+ const r=await fetch('/api/upload',{method:'POST',headers:{'x-admin-password':pw,'x-filename':encodeURIComponent(isPng?name+'.png':f.name),'x-content-type':isPng?'image/png':f.type,'content-type':'application/octet-stream'},body:out});
  toast(r.ok?name+' 등록 완료':name+' 실패')}load()}
 $('drop').onclick=()=>$('file').click();$('file').onchange=e=>up(e.target.files);
 $('drop').ondragover=e=>e.preventDefault();$('drop').ondrop=e=>{e.preventDefault();up(e.dataTransfer.files)};
