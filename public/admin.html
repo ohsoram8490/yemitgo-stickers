@@ -11,7 +11,7 @@
 <label><input type="checkbox" id="trim" checked> 여백 자동 다듬기</label>
 <label><input type="checkbox" id="rmbg"> 단색 배경 지우기 (흰 배경 사진용)</label></div>
 <div style="margin-top:14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><button class="btn" id="save" disabled>순서 저장</button><span style="font-size:13px;color:#8a6670">스티커를 끌어서 옮기거나 ← → 버튼을 쓰세요. 이 순서가 각 탭 안의 순서예요.</span></div>
-<div style="margin-top:10px;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><button class="btn sub" id="catdl">분류 파일 내려받기</button><span style="font-size:13px;color:#8a6670">스티커 위 [예믿고/고대] 버튼으로 분류 → 내려받은 categories.json 을 GitHub에 올리면 반영돼요.</span></div>
+<div style="margin-top:10px;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><button class="btn sub" id="catdl">분류 파일 내려받기</button><span style="font-size:13px;color:#8a6670">스티커 위 [복음본색/예믿고] 버튼으로 분류 → 내려받은 categories.json 을 GitHub에 올리면 반영돼요.</span></div>
 <div class="grid" id="grid"></div></div></main><div id="toast"></div>
 <script>
 const $=id=>document.getElementById(id);let pw=sessionStorage.getItem('pw')||'';
@@ -22,7 +22,7 @@ function render(){$('grid').innerHTML='';
  items.forEach((s,i)=>{const t=document.createElement('div');t.className='tile';t.draggable=true;
  t.innerHTML='<img draggable="false"><button class="x">×</button><span class="no">'+(i+1)+'</span><button class="cat"></button><span class="hit">복사 '+s.hits+'회</span><div class="mv"><button>←</button><button>→</button></div>';
  t.querySelector('img').src=s.url;
- const cb=t.querySelector('.cat'),g=godae.has(s.id);cb.textContent=g?'고대':'예믿고';cb.classList.toggle('g',g);
+ const cb=t.querySelector('.cat'),g=godae.has(s.id);cb.textContent=g?'예믿고':'복음본색';cb.classList.toggle('g',g);
  cb.onclick=e=>{e.stopPropagation();godae.has(s.id)?godae.delete(s.id):godae.add(s.id);catChanged=true;render()};
  const mv=(j)=>{if(j<0||j>=items.length)return;const [m]=items.splice(i,1);items.splice(j,0,m);mark();render()};
  const [l,r]=t.querySelectorAll('.mv button');l.onclick=()=>mv(i-1);r.onclick=()=>mv(i+1);

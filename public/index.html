@@ -33,7 +33,7 @@ footer{padding-bottom:90px}
 </style></head><body>
 <section class="hero"><img class="mascot" src="/hero.png" alt="복음본색 스티커"><h1>복음본색 스티커</h1><p>예수 믿는 고대를 꿈꾸며 · 복음본색 pt.2</p><div class="hint">↓ 스크롤해서 스티커 받기</div></section>
 <section class="sec" id="stickers"><h2>스티커를 눌러 복사하세요</h2><p class="sub">카톡·인스타·메모에 붙여넣기 (Ctrl/⌘ + V)</p>
-<div class="sort" id="sort"><button data-k="yemitgo" class="on">예믿고 스티커</button><button data-k="godae">고대 스티커</button><button data-k="hit">인기순</button></div>
+<div class="sort" id="sort"><button data-k="yemitgo" class="on">복음본색 스티커</button><button data-k="godae">예믿고 스티커</button><button data-k="hit">인기순</button></div>
 <div class="grid" id="grid"></div><div class="empty" id="empty" hidden>스티커를 준비 중이에요</div></section>
 <section class="order" id="order"><div class="card"><h3>실물 스티커 주문하기</h3><p>마음에 드는 스티커를 실물로 받고 싶다면<br>구글폼으로 주문해 주세요!</p><a class="btn order-link" href="#" target="_blank" rel="noopener">구글폼으로 주문하기 →</a></div></section>
 <footer>복음본색 pt.2 · <a href="/admin.html">관리자</a></footer><div id="toast"></div>
@@ -57,7 +57,7 @@ async function copy(s){const url=s.url;
  if(!window.ClipboardItem||!navigator.clipboard||!navigator.clipboard.write){toast('이 브라우저는 복사를 지원하지 않아요. 크롬/사파리로 열어주세요');return}
  try{await navigator.clipboard.write([new ClipboardItem({'image/png':toPng(url)})]);toast('복사됐어요! 붙여넣기 해보세요');fetch('/api/hit',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({id:s.id}),keepalive:true}).catch(()=>{})}
  catch(e){toast('복사 실패: '+(e.message||e.name))}}
-// 분류: categories.json 의 "godae" 목록에 있는 스티커 = 고대 스티커, 나머지 = 예믿고 스티커
+// 분류: categories.json 의 "godae" 목록에 있는 스티커 = 예믿고 탭, 나머지 = 복음본색 탭
 let all=[],godae=new Set(),key='yemitgo';
 function render(){grid.innerHTML='';let l=all.slice();
  if(key==='yemitgo')l=l.filter(s=>!godae.has(s.id));
