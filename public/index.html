@@ -16,17 +16,40 @@
 @keyframes fade{to{opacity:.92}}@keyframes bob{50%{transform:translateY(8px)}}
 .sec{max-width:1000px;margin:0 auto;padding:48px 20px 20px}.sec h2{margin:0;text-align:center;color:var(--crimson);font-size:22px}
 .sec .sub{text-align:center;color:#8a6670;font-size:14px;margin:6px 0 0}
-footer a{color:#bbb}.sort{display:flex;justify-content:center;gap:8px;margin-top:18px}.sort button{border:2px solid var(--crimson);background:#fff;color:var(--crimson);border-radius:999px;padding:7px 16px;font-size:14px;cursor:pointer}.sort button.on{background:var(--crimson);color:#fff}
+footer a{color:#bbb}.sort{display:flex;justify-content:center;gap:8px;margin-top:18px;flex-wrap:wrap}.sort button{border:2px solid var(--crimson);background:#fff;color:var(--crimson);border-radius:999px;padding:7px 16px;font-size:14px;cursor:pointer}.sort button.on{background:var(--crimson);color:#fff}
+/* 주문 카드 */
+.order{max-width:1000px;margin:20px auto 0;padding:0 20px}
+.order .card{background:var(--crimson-l);border:2px solid var(--crimson);border-radius:24px;padding:28px 22px;text-align:center}
+.order h3{margin:0;color:var(--crimson);font-size:22px}
+.order p{margin:8px 0 18px;color:#8a6670;font-size:14px;line-height:1.5}
+.order .btn{display:inline-block;text-decoration:none;font-weight:700;font-size:16px;padding:14px 28px}
+/* 하단 고정 주문 버튼 */
+.fab{position:fixed;left:50%;bottom:18px;transform:translate(-50%,0);z-index:20;background:var(--crimson);color:#fff;text-decoration:none;font-weight:700;font-size:15px;padding:13px 24px;border-radius:999px;box-shadow:0 8px 24px rgba(94,0,27,.35);transition:.25s;white-space:nowrap}
+.fab:hover{background:var(--crimson-d)}
+.fab.hide{opacity:0;pointer-events:none;transform:translate(-50%,20px)}
+footer{padding-bottom:90px}
+#toast{bottom:84px}
 @media(prefers-reduced-motion:reduce){.mascot,.hint{animation:none}}
 </style></head><body>
 <section class="hero"><img class="mascot" src="/hero.png" alt="복음본색 스티커"><h1>복음본색 스티커</h1><p>예수 믿는 고대를 꿈꾸며 · 복음본색 pt.2</p><div class="hint">↓ 스크롤해서 스티커 받기</div></section>
 <section class="sec" id="stickers"><h2>스티커를 눌러 복사하세요</h2><p class="sub">카톡·인스타·메모에 붙여넣기 (Ctrl/⌘ + V)</p>
-<div class="sort" id="sort"><button data-k="rec" class="on">추천순</button><button data-k="hit">인기순</button><button data-k="new">최신순</button></div>
+<div class="sort" id="sort"><button data-k="yemitgo" class="on">예믿고 스티커</button><button data-k="godae">고대 스티커</button><button data-k="hit">인기순</button></div>
 <div class="grid" id="grid"></div><div class="empty" id="empty" hidden>스티커를 준비 중이에요</div></section>
+<section class="order" id="order"><div class="card"><h3>실물 스티커 주문하기</h3><p>마음에 드는 스티커를 실물로 받고 싶다면<br>구글폼으로 주문해 주세요!</p><a class="btn order-link" href="#" target="_blank" rel="noopener">구글폼으로 주문하기 →</a></div></section>
 <footer>복음본색 pt.2 · <a href="/admin.html">관리자</a></footer><div id="toast"></div>
+<a class="fab order-link" id="fab" href="#" target="_blank" rel="noopener">🛒 스티커 주문하기</a>
 <script>
+// ▼ 주문 구글폼 링크를 여기에 넣으세요 (따옴표 안). 비워두면 "준비 중" 안내가 떠요.
+const ORDER_FORM_URL='';
+
 const grid=document.getElementById('grid');
 function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('on');setTimeout(()=>t.classList.remove('on'),1600)}
+document.querySelectorAll('.order-link').forEach(a=>{
+ if(ORDER_FORM_URL){a.href=ORDER_FORM_URL}
+ else{a.removeAttribute('target');a.onclick=e=>{e.preventDefault();toast('주문 폼을 준비 중이에요')}}});
+// 주문 카드가 화면에 보이면 하단 고정 버튼 숨기기
+const fab=document.getElementById('fab');
+if('IntersectionObserver' in window){new IntersectionObserver(es=>es.forEach(e=>fab.classList.toggle('hide',e.isIntersecting))).observe(document.getElementById('order'))}
 async function toPng(url){const r=await fetch('/api/img?url='+encodeURIComponent(url));if(!r.ok)throw new Error('이미지 불러오기 실패');const b=await r.blob();
  const img=await createImageBitmap(b);const c=document.createElement('canvas');c.width=img.width;c.height=img.height;c.getContext('2d').drawImage(img,0,0);
  return new Promise((res,rej)=>c.toBlob(x=>x?res(x):rej(new Error('변환 실패')),'image/png'))}
@@ -34,11 +57,17 @@ async function copy(s){const url=s.url;
  if(!window.ClipboardItem||!navigator.clipboard||!navigator.clipboard.write){toast('이 브라우저는 복사를 지원하지 않아요. 크롬/사파리로 열어주세요');return}
  try{await navigator.clipboard.write([new ClipboardItem({'image/png':toPng(url)})]);toast('복사됐어요! 붙여넣기 해보세요');fetch('/api/hit',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({id:s.id}),keepalive:true}).catch(()=>{})}
  catch(e){toast('복사 실패: '+(e.message||e.name))}}
-let all=[],key='rec';
-function render(){grid.innerHTML='';const l=all.slice();
- if(key==='hit')l.sort((a,b)=>b.hits-a.hits);else if(key==='new')l.sort((a,b)=>b.t-a.t);
+// 분류: categories.json 의 "godae" 목록에 있는 스티커 = 고대 스티커, 나머지 = 예믿고 스티커
+let all=[],godae=new Set(),key='yemitgo';
+function render(){grid.innerHTML='';let l=all.slice();
+ if(key==='yemitgo')l=l.filter(s=>!godae.has(s.id));
+ else if(key==='godae')l=l.filter(s=>godae.has(s.id));
+ else if(key==='hit')l.sort((a,b)=>b.hits-a.hits);
  document.getElementById('empty').hidden=l.length>0;
  l.forEach(s=>{const t=document.createElement('div');t.className='tile';const i=new Image();i.loading='lazy';i.alt='';i.src=s.url;t.appendChild(i);t.onclick=()=>copy(s);grid.appendChild(t)})}
 document.querySelectorAll('#sort button').forEach(b=>b.onclick=()=>{key=b.dataset.k;document.querySelectorAll('#sort button').forEach(x=>x.classList.toggle('on',x===b));render()});
-fetch('/api/stickers').then(r=>r.json()).then(d=>{all=Array.isArray(d)?d:[];render()});
+Promise.all([
+ fetch('/api/stickers').then(r=>r.json()).catch(()=>[]),
+ fetch('/categories.json?t='+Date.now()).then(r=>r.ok?r.json():{}).catch(()=>({}))
+]).then(([d,c])=>{all=Array.isArray(d)?d:[];godae=new Set((c&&c.godae)||[]);render()});
 </script></body></html>
